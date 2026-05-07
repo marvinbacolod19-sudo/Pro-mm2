@@ -6,12 +6,24 @@ local Window = Rayfield:CreateWindow({
    LoadingTitle = "Applying UI Update...",
    LoadingSubtitle = "by Gemini",
    ConfigurationSaving = { Enabled = false },
-   KeySystem = false
+   KeySystem = false 
 })
 
 -- 2. VARIABLES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- Function para sa Aim
+local function GetTarget(toolName)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            if v.Backpack:FindFirstChild(toolName) or v.Character:FindFirstChild(toolName) then
+                return v.Character.HumanoidRootPart
+            end
+        end
+    end
+    return nil
+end
 
 -- 3. FLOATING CIRCLE BUTTONS SETUP
 local ScreenGui = Instance.new("ScreenGui")
@@ -22,8 +34,7 @@ local function CreateCircleBtn(name, position, callback)
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Text = name
-    -- Ginawang pabilog ang Size (pantay na width at height)
-    btn.Size = UDim2.new(0, 65, 0, 65) 
+    btn.Size = UDim2.new(0, 65, 0, 65)
     btn.Position = position
     btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     btn.BackgroundTransparency = 0.3
@@ -32,52 +43,46 @@ local function CreateCircleBtn(name, position, callback)
     btn.TextSize = 12
     btn.Parent = ScreenGui
     btn.Active = true
-    btn.Draggable = true -- Pwede mong i-drag kahit saan
-
-    -- Make it Circle
+    btn.Draggable = true 
+    
     local corner = Instance.new("UICorner", btn)
-    corner.CornerRadius = UDim.new(1, 0) -- Perfect circle
-
-    -- Stroke Effect (Glow look)
+    corner.CornerRadius = UDim2.new(1, 0)
+    
     local stroke = Instance.new("UIStroke", btn)
-    stroke.Color = Color3.fromRGB(0, 255, 255) -- Cyan Blue border
+    stroke.Color = Color3.fromRGB(0, 255, 255)
     stroke.Thickness = 2
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
+    
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
--- Create the Buttons (Naka-scatter muna para ikaw mag-posisyon)
+-- SHOOT Button (Sheriff)
 local shootBtn = CreateCircleBtn("SHOOT", UDim2.new(0.8, 0, 0.4, 0), function()
-    Rayfield:Notify({Title = "Auto Shoot", Content = "Locking on Murderer..."})
-    -- Auto Shoot Logic
+    local target = GetTarget("Knife")
+    if target then
+        game.Workspace.CurrentCamera.CFrame = CFrame.new(game.Workspace.CurrentCamera.CFrame.Position, target.Position)
+        Rayfield:Notify({Title = "Locking", Content = "Murderer Targeted!"})
+    end
 end)
 
+-- THROW Button (Murderer)
 local throwBtn = CreateCircleBtn("THROW", UDim2.new(0.8, 0, 0.55, 0), function()
-    Rayfield:Notify({Title = "Auto Throw", Content = "Locking on Sheriff..."})
-    -- Auto Throw Logic
+    local target = GetTarget("Gun")
+    if target then
+        game.Workspace.CurrentCamera.CFrame = CFrame.new(game.Workspace.CurrentCamera.CFrame.Position, target.Position)
+        Rayfield:Notify({Title = "Locking", Content = "Sheriff Targeted!"})
+    end
 end)
 
--- 4. SETTINGS TAB (Para sa Lock Feature)
+-- 4. SETTINGS
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
-
 SettingsTab:CreateToggle({
-   Name = "Lock Button Positions",
+   Name = "Lock Buttons",
    CurrentValue = false,
    Callback = function(Value)
       shootBtn.Draggable = not Value
       throwBtn.Draggable = not Value
-      
-      local lockColor = Value and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 255)
-      shootBtn.UIStroke.Color = lockColor
-      throwBtn.UIStroke.Color = lockColor
-      
-      Rayfield:Notify({
-          Title = Value and "UI Locked" or "UI Unlocked",
-          Content = Value and "Hindi na sila mada-drag." or "Pwede mo na uli i-set ang pwesto."
-      })
+      shootBtn.UIStroke.Color = Value and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 255)
+      throwBtn.UIStroke.Color = Value and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 255)
    end,
 })
-
-Rayfield:Notify({Title = "Update Complete", Content = "Circular Buttons Loaded!"})
